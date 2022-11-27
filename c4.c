@@ -11,12 +11,180 @@
 #include <memory.h>
 #include <unistd.h>
 #include <fcntl.h>
-#define int long long
+#include <time.h>
+#define int64 long long
+
+
+int64* CLOSE;
+int  LEN = 50000;
+
+int64* mallocAndSet0(){
+  int size = sizeof(int64) * LEN;
+  int64* res = (int64*)malloc(size);
+  memset(res, 0, size);
+  return res;
+}
+
+int64* getClose(){//GCLS
+  CLOSE = mallocAndSet0();
+  int64* res = CLOSE;
+
+  srand((unsigned)time(NULL));
+
+  for(int i = 0; i < LEN; i++){
+    *(res + i) = (int64)(rand() % 100000);
+    //*(CLOSE + i) = (int64)(rand());
+    if(i < 10){
+      //printf("getClose|i=%d|val=%d\n", i, *(res + i));
+    }
+  }
+  return res;
+}
+
+double* mallocDouble(){
+  int size = sizeof(double) * LEN;
+  double* res = (double*)malloc(size);
+  memset(res, 0, size);
+  return res;
+}
+
+double getRandDouble(double x, double y){
+  /*
+  随机生成[x,y]的浮点数，x ＋ 1.0 * rand() / RAND_MAX * ( y - x )
+  */
+  return x + 1.0 * rand()  / RAND_MAX * ( y - x );
+}
+
+double* getCloseDouble(){//GCLS
+  double* res = mallocDouble();
+
+  srand((unsigned)time(NULL));
+
+  for(int i = 0; i < LEN; i++){
+    *(res + i) = getRandDouble(1,100000);
+    //*(CLOSE + i) = (int64)(rand());
+    if(i < 10){
+      //printf("getCloseDouble|i=%d|val=%lf\n", i, *(res + i));
+    }
+  }
+  return res;
+}
+
+int64* SUBVFun(int64* p1, int64* p2){
+  const clock_t begin_time = clock();
+
+  int64* res = mallocAndSet0();
+
+  for(int i = 0; i < LEN; i++){
+    *(res + i) = *(p1 + i) - *(p2 + i);
+  }
+
+  float ms = (float)(clock( ) - begin_time) / CLOCKS_PER_SEC;    //最小精度到ms
+  //printf("SUBV|Timecost=%f secd\n", ms);
+  return res;
+}
+
+int64* MULVFun(int64* p, int num){
+  const clock_t begin_time = clock();    
+  int64* res = mallocAndSet0();
+
+  for(int i = 0; i < LEN; i++){
+    *(res + i) = num * (*( p + i));
+    if(i<10){
+      //printf("MULV|i=%d|val=%d\n", i, *(res + i));
+    }
+
+  }
+
+  float ms = (float)(clock( ) - begin_time) / CLOCKS_PER_SEC;    //最小精度到ms
+  //printf("MULV|Timecost=%f secd\n", ms);
+  return res;
+}
+
+int64* MAFun(int64* p, int day){//MA
+  clock_t begin_time = clock();    
+  
+  int64* res = mallocAndSet0();
+
+  int64 curtotal = 0;
+  for(int i = 0; i < day; i++){
+    curtotal += *(p + i);
+  }
+
+  *(res + day) = curtotal / day;
+
+  for(int i = day+1; i < LEN; i++){
+    curtotal = curtotal + *(p + i - 1) - *(p + i - day - 1);
+    *(res + i) = curtotal / day;
+    if(i<10){
+      //printf("MAFun|i=%d|total=%d|val=%d\n", i ,curtotal, *(res + i));
+    }
+  }
+
+  float ms = (float)(clock() - begin_time) / CLOCKS_PER_SEC;    //最小精度到ms
+  //printf("MAFun|CLOCKS_PER_SEC=%d|Timecost=%f sec\n", CLOCKS_PER_SEC, ms);
+  return res;
+}
+
+int64* EMAFun(int64* p, int day){
+  clock_t begin_time = clock();    
+  int64* res = mallocAndSet0();
+  for(int i = 1; i < LEN; i++){
+    int64 preema = *(res + i - 1);
+    int64 curk = *( p + i);
+    *(res + i) = (2 * curk + (day - 1) * preema ) / (day + 1);
+
+  }
+  
+  float ms = (float)(clock() - begin_time) / CLOCKS_PER_SEC;    //最小精度到ms
+  //printf("EMAFun|CLOCKS_PER_SEC=%d|Timecost=%f sec\n", CLOCKS_PER_SEC, ms);
+  return res;
+}
+
+
+double* MAFunDouble(double* p, int day){//MA
+  clock_t begin_time = clock();    
+  
+  double* res = mallocDouble();
+
+  double curtotal = 0;
+  for(int i = 0; i < day; i++){
+    curtotal += *(p + i);
+  }
+
+  *(res + day) = curtotal / day;
+
+  for(int i = day+1; i < LEN; i++){
+    curtotal = curtotal + *(p + i - 1) - *(p + i - day - 1);
+    *(res + i) = curtotal / day;
+    if(i<10){
+      //printf("MAFunDouble|i=%d|total=%d|val=%d\n", i ,curtotal, *(res + i));
+    }
+
+  }
+
+  float ms = (float)(clock() - begin_time) / CLOCKS_PER_SEC;    //最小精度到ms
+  printf("MAFunDouble|CLOCKS_PER_SEC=%d|Timecost=%f sec\n", CLOCKS_PER_SEC, ms);
+  return res;
+}
+
+
+int main2(int argc, char **argv){
+  printf("sizefloat=%d|sizedouble=%d\n", sizeof(float), sizeof(double));
+  
+  double *pdouble = getCloseDouble();
+  MAFunDouble(pdouble, 5);
+
+  getClose();
+  MAFun(CLOSE, 5);
+
+  return 0;
+}
 
 char *p, *lp, // current position in source code
      *data;   // data/bss pointer
 
-int *e, *le,  // current position in emitted code
+int64 *e, *le,  // current position in emitted code
     *id,      // currently parsed identifier
     *sym,     // symbol table (simple list of identifiers)
     tk,       // current token
@@ -37,7 +205,7 @@ enum {
 // opcodes
 enum { LEA ,IMM ,JMP ,JSR ,BZ  ,BNZ ,ENT ,ADJ ,LEV ,LI  ,LC  ,SI  ,SC  ,PSH ,
        OR  ,XOR ,AND ,EQ  ,NE  ,LT  ,GT  ,LE  ,GE  ,SHL ,SHR ,ADD ,SUB ,MUL ,DIV ,MOD ,
-       OPEN,READ,CLOS,PRTF,MALC,FREE,MSET,MCMP,EXIT };
+       OPEN,READ,CLOS,PRTF,MALC,FREE,MSET,MCMP,MA  ,GCLS,SUBV,MULV,EMA ,EXIT };
 
 // types
 enum { CHAR, INT, PTR };
@@ -58,7 +226,7 @@ void next()
         while (le < e) {
           printf("%8.4s", &"LEA ,IMM ,JMP ,JSR ,BZ  ,BNZ ,ENT ,ADJ ,LEV ,LI  ,LC  ,SI  ,SC  ,PSH ,"
                            "OR  ,XOR ,AND ,EQ  ,NE  ,LT  ,GT  ,LE  ,GE  ,SHL ,SHR ,ADD ,SUB ,MUL ,DIV ,MOD ,"
-                           "OPEN,READ,CLOS,PRTF,MALC,FREE,MSET,MCMP,EXIT,"[*++le * 5]);
+                           "OPEN,READ,CLOS,PRTF,MALC,FREE,MSET,MCMP,MA  ,GCLS,SUBV,MULV,EMA ,EXIT,"[*++le * 5]);
           if (*le <= ADJ) printf(" %d\n", *++le); else printf("\n");
         }
       }
@@ -77,7 +245,7 @@ void next()
         if (tk == id[Hash] && !memcmp((char *)id[Name], pp, p - pp)) { tk = id[Tk]; return; }
         id = id + Idsz;
       }
-      id[Name] = (int)pp;
+      id[Name] = (int64)pp;
       id[Hash] = tk;
       tk = id[Tk] = Id;
       return;
@@ -111,7 +279,7 @@ void next()
         if (tk == '"') *data++ = ival;
       }
       ++p;
-      if (tk == '"') ival = (int)pp; else tk = Num;
+      if (tk == '"') ival = (int64)pp; else tk = Num;
       return;
     }
     else if (tk == '=') { if (*p == '=') { ++p; tk = Eq; } else tk = Assign; return; }
@@ -131,23 +299,23 @@ void next()
   }
 }
 
-void expr(int lev)
+void expr(int64 lev)
 {
-  int t, *d;
+  int64 t, *d;
 
   if (!tk) { printf("%d: unexpected eof in expression\n", line); exit(-1); }
   else if (tk == Num) { *++e = IMM; *++e = ival; next(); ty = INT; }
   else if (tk == '"') {
     *++e = IMM; *++e = ival; next();
     while (tk == '"') next();
-    data = (char *)((int)data + sizeof(int) & -sizeof(int)); ty = PTR;
+    data = (char *)((int64)data + sizeof(int64) & -sizeof(int64)); ty = PTR;
   }
   else if (tk == Sizeof) {
     next(); if (tk == '(') next(); else { printf("%d: open paren expected in sizeof\n", line); exit(-1); }
     ty = INT; if (tk == Int) next(); else if (tk == Char) { next(); ty = CHAR; }
     while (tk == Mul) { next(); ty = ty + PTR; }
     if (tk == ')') next(); else { printf("%d: close paren expected in sizeof\n", line); exit(-1); }
-    *++e = IMM; *++e = (ty == CHAR) ? sizeof(char) : sizeof(int);
+    *++e = IMM; *++e = (ty == CHAR) ? sizeof(char) : sizeof(int64);
     ty = INT;
   }
   else if (tk == Id) {
@@ -209,7 +377,7 @@ void expr(int lev)
     else if (*e == LI) { *e = PSH; *++e = LI; }
     else { printf("%d: bad lvalue in pre-increment\n", line); exit(-1); }
     *++e = PSH;
-    *++e = IMM; *++e = (ty > PTR) ? sizeof(int) : sizeof(char);
+    *++e = IMM; *++e = (ty > PTR) ? sizeof(int64) : sizeof(char);
     *++e = (t == Inc) ? ADD : SUB;
     *++e = (ty == CHAR) ? SC : SI;
   }
@@ -227,12 +395,12 @@ void expr(int lev)
       *++e = BZ; d = ++e;
       expr(Assign);
       if (tk == ':') next(); else { printf("%d: conditional missing colon\n", line); exit(-1); }
-      *d = (int)(e + 3); *++e = JMP; d = ++e;
+      *d = (int64)(e + 3); *++e = JMP; d = ++e;
       expr(Cond);
-      *d = (int)(e + 1);
+      *d = (int64)(e + 1);
     }
-    else if (tk == Lor) { next(); *++e = BNZ; d = ++e; expr(Lan); *d = (int)(e + 1); ty = INT; }
-    else if (tk == Lan) { next(); *++e = BZ;  d = ++e; expr(Or);  *d = (int)(e + 1); ty = INT; }
+    else if (tk == Lor) { next(); *++e = BNZ; d = ++e; expr(Lan); *d = (int64)(e + 1); ty = INT; }
+    else if (tk == Lan) { next(); *++e = BZ;  d = ++e; expr(Or);  *d = (int64)(e + 1); ty = INT; }
     else if (tk == Or)  { next(); *++e = PSH; expr(Xor); *++e = OR;  ty = INT; }
     else if (tk == Xor) { next(); *++e = PSH; expr(And); *++e = XOR; ty = INT; }
     else if (tk == And) { next(); *++e = PSH; expr(Eq);  *++e = AND; ty = INT; }
@@ -246,13 +414,13 @@ void expr(int lev)
     else if (tk == Shr) { next(); *++e = PSH; expr(Add); *++e = SHR; ty = INT; }
     else if (tk == Add) {
       next(); *++e = PSH; expr(Mul);
-      if ((ty = t) > PTR) { *++e = PSH; *++e = IMM; *++e = sizeof(int); *++e = MUL;  }
+      if ((ty = t) > PTR) { *++e = PSH; *++e = IMM; *++e = sizeof(int64); *++e = MUL;  }
       *++e = ADD;
     }
     else if (tk == Sub) {
       next(); *++e = PSH; expr(Mul);
-      if (t > PTR && t == ty) { *++e = SUB; *++e = PSH; *++e = IMM; *++e = sizeof(int); *++e = DIV; ty = INT; }
-      else if ((ty = t) > PTR) { *++e = PSH; *++e = IMM; *++e = sizeof(int); *++e = MUL; *++e = SUB; }
+      if (t > PTR && t == ty) { *++e = SUB; *++e = PSH; *++e = IMM; *++e = sizeof(int64); *++e = DIV; ty = INT; }
+      else if ((ty = t) > PTR) { *++e = PSH; *++e = IMM; *++e = sizeof(int64); *++e = MUL; *++e = SUB; }
       else *++e = SUB;
     }
     else if (tk == Mul) { next(); *++e = PSH; expr(Inc); *++e = MUL; ty = INT; }
@@ -262,17 +430,17 @@ void expr(int lev)
       if (*e == LC) { *e = PSH; *++e = LC; }
       else if (*e == LI) { *e = PSH; *++e = LI; }
       else { printf("%d: bad lvalue in post-increment\n", line); exit(-1); }
-      *++e = PSH; *++e = IMM; *++e = (ty > PTR) ? sizeof(int) : sizeof(char);
+      *++e = PSH; *++e = IMM; *++e = (ty > PTR) ? sizeof(int64) : sizeof(char);
       *++e = (tk == Inc) ? ADD : SUB;
       *++e = (ty == CHAR) ? SC : SI;
-      *++e = PSH; *++e = IMM; *++e = (ty > PTR) ? sizeof(int) : sizeof(char);
+      *++e = PSH; *++e = IMM; *++e = (ty > PTR) ? sizeof(int64) : sizeof(char);
       *++e = (tk == Inc) ? SUB : ADD;
       next();
     }
     else if (tk == Brak) {
       next(); *++e = PSH; expr(Assign);
       if (tk == ']') next(); else { printf("%d: close bracket expected\n", line); exit(-1); }
-      if (t > PTR) { *++e = PSH; *++e = IMM; *++e = sizeof(int); *++e = MUL;  }
+      if (t > PTR) { *++e = PSH; *++e = IMM; *++e = sizeof(int64); *++e = MUL;  }
       else if (t < PTR) { printf("%d: pointer type expected\n", line); exit(-1); }
       *++e = ADD;
       *++e = ((ty = t - PTR) == CHAR) ? LC : LI;
@@ -283,7 +451,7 @@ void expr(int lev)
 
 void stmt()
 {
-  int *a, *b;
+  int64 *a, *b;
 
   if (tk == If) {
     next();
@@ -293,11 +461,11 @@ void stmt()
     *++e = BZ; b = ++e;
     stmt();
     if (tk == Else) {
-      *b = (int)(e + 3); *++e = JMP; b = ++e;
+      *b = (int64)(e + 3); *++e = JMP; b = ++e;
       next();
       stmt();
     }
-    *b = (int)(e + 1);
+    *b = (int64)(e + 1);
   }
   else if (tk == While) {
     next();
@@ -307,8 +475,8 @@ void stmt()
     if (tk == ')') next(); else { printf("%d: close paren expected\n", line); exit(-1); }
     *++e = BZ; b = ++e;
     stmt();
-    *++e = JMP; *++e = (int)a;
-    *b = (int)(e + 1);
+    *++e = JMP; *++e = (int64)a;
+    *b = (int64)(e + 1);
   }
   else if (tk == Return) {
     next();
@@ -330,11 +498,25 @@ void stmt()
   }
 }
 
-int main(int argc, char **argv)
+int main(int argc, char **argv){
+  int n  = 100;
+  const clock_t begin_time = clock();  
+  for(int i = 0; i < n; i++){
+    main_loop(argc, argv);
+  }
+
+  float timecost = (float)(clock() - begin_time) / CLOCKS_PER_SEC;    //
+  float avgtime = timecost / n;
+  printf("loop times=%d|avg timecost=%f secd\n", n, avgtime); 
+}
+
+int main_loop(int argc, char **argv)
 {
-  int fd, bt, ty, poolsz, *idmain;
-  int *pc, *sp, *bp, a, cycle; // vm registers
-  int i, *t; // temps
+  const clock_t begin_time = clock();    
+
+  int64 fd, bt, ty, poolsz, *idmain;
+  int64 *pc, *sp, *bp, a, cycle; // vm registers
+  int64 i, *t; // temps
 
   --argc; ++argv;
   if (argc > 0 && **argv == '-' && (*argv)[1] == 's') { src = 1; --argc; ++argv; }
@@ -344,23 +526,23 @@ int main(int argc, char **argv)
   if ((fd = open(*argv, 0)) < 0) { printf("could not open(%s)\n", *argv); return -1; }
 
   poolsz = 256*1024; // arbitrary size
-  if (!(sym = malloc(poolsz))) { printf("could not malloc(%d) symbol area\n", poolsz); return -1; }
-  if (!(le = e = malloc(poolsz))) { printf("could not malloc(%d) text area\n", poolsz); return -1; }
-  if (!(data = malloc(poolsz))) { printf("could not malloc(%d) data area\n", poolsz); return -1; }
-  if (!(sp = malloc(poolsz))) { printf("could not malloc(%d) stack area\n", poolsz); return -1; }
+  if (!(sym = (int64*)malloc(poolsz))) { printf("could not malloc(%d) symbol area\n", poolsz); return -1; }
+  if (!(le = e = (int64*)malloc(poolsz))) { printf("could not malloc(%d) text area\n", poolsz); return -1; }
+  if (!(data = (char*)malloc(poolsz))) { printf("could not malloc(%d) data area\n", poolsz); return -1; }
+  if (!(sp = (int64*)malloc(poolsz))) { printf("could not malloc(%d) stack area\n", poolsz); return -1; }
 
   memset(sym,  0, poolsz);
   memset(e,    0, poolsz);
   memset(data, 0, poolsz);
 
   p = "char else enum if int return sizeof while "
-      "open read close printf malloc free memset memcmp exit void main";
+      "open read close printf malloc free memset memcmp MA GCLS SUBV MULV EMA exit void main";
   i = Char; while (i <= While) { next(); id[Tk] = i++; } // add keywords to symbol table
   i = OPEN; while (i <= EXIT) { next(); id[Class] = Sys; id[Type] = INT; id[Val] = i++; } // add library to symbol table
   next(); id[Tk] = Char; // handle void type
   next(); idmain = id; // keep track of main
 
-  if (!(lp = p = malloc(poolsz))) { printf("could not malloc(%d) source area\n", poolsz); return -1; }
+  if (!(lp = p = (char*)malloc(poolsz))) { printf("could not malloc(%d) source area\n", poolsz); return -1; }
   if ((i = read(fd, p, poolsz-1)) <= 0) { printf("read() returned %d\n", i); return -1; }
   p[i] = 0;
   close(fd);
@@ -402,7 +584,7 @@ int main(int argc, char **argv)
       id[Type] = ty;
       if (tk == '(') { // function
         id[Class] = Fun;
-        id[Val] = (int)(e + 1);
+        id[Val] = (int64)(e + 1);
         next(); i = 0;
         while (tk != ')') {
           ty = INT;
@@ -452,24 +634,24 @@ int main(int argc, char **argv)
       }
       else {
         id[Class] = Glo;
-        id[Val] = (int)data;
-        data = data + sizeof(int);
+        id[Val] = (int64)data;
+        data = data + sizeof(int64);
       }
       if (tk == ',') next();
     }
     next();
   }
 
-  if (!(pc = (int *)idmain[Val])) { printf("main() not defined\n"); return -1; }
+  if (!(pc = (int64 *)idmain[Val])) { printf("main() not defined\n"); return -1; }
   if (src) return 0;
 
   // setup stack
-  bp = sp = (int *)((int)sp + poolsz);
+  bp = sp = (int64 *)((int64)sp + poolsz);
   *--sp = EXIT; // call exit if main returns
   *--sp = PSH; t = sp;
   *--sp = argc;
-  *--sp = (int)argv;
-  *--sp = (int)t;
+  *--sp = (int64)argv;
+  *--sp = (int64)t;
 
   // run...
   cycle = 0;
@@ -479,21 +661,21 @@ int main(int argc, char **argv)
       printf("%d> %.4s", cycle,
         &"LEA ,IMM ,JMP ,JSR ,BZ  ,BNZ ,ENT ,ADJ ,LEV ,LI  ,LC  ,SI  ,SC  ,PSH ,"
          "OR  ,XOR ,AND ,EQ  ,NE  ,LT  ,GT  ,LE  ,GE  ,SHL ,SHR ,ADD ,SUB ,MUL ,DIV ,MOD ,"
-         "OPEN,READ,CLOS,PRTF,MALC,FREE,MSET,MCMP,EXIT,"[i * 5]);
+         "OPEN,READ,CLOS,PRTF,MALC,FREE,MSET,MCMP,MA  ,GCLS,SUBV,MULV,EMA ,EXIT,"[i * 5]);
       if (i <= ADJ) printf(" %d\n", *pc); else printf("\n");
     }
-    if      (i == LEA) a = (int)(bp + *pc++);                             // load local address
+    if      (i == LEA) a = (int64)(bp + *pc++);                             // load local address
     else if (i == IMM) a = *pc++;                                         // load global address or immediate
-    else if (i == JMP) pc = (int *)*pc;                                   // jump
-    else if (i == JSR) { *--sp = (int)(pc + 1); pc = (int *)*pc; }        // jump to subroutine
-    else if (i == BZ)  pc = a ? pc + 1 : (int *)*pc;                      // branch if zero
-    else if (i == BNZ) pc = a ? (int *)*pc : pc + 1;                      // branch if not zero
-    else if (i == ENT) { *--sp = (int)bp; bp = sp; sp = sp - *pc++; }     // enter subroutine
+    else if (i == JMP) pc = (int64 *)*pc;                                   // jump
+    else if (i == JSR) { *--sp = (int64)(pc + 1); pc = (int64 *)*pc; }        // jump to subroutine
+    else if (i == BZ)  pc = a ? pc + 1 : (int64 *)*pc;                      // branch if zero
+    else if (i == BNZ) pc = a ? (int64 *)*pc : pc + 1;                      // branch if not zero
+    else if (i == ENT) { *--sp = (int64)bp; bp = sp; sp = sp - *pc++; }     // enter subroutine
     else if (i == ADJ) sp = sp + *pc++;                                   // stack adjust
-    else if (i == LEV) { sp = bp; bp = (int *)*sp++; pc = (int *)*sp++; } // leave subroutine
-    else if (i == LI)  a = *(int *)a;                                     // load int
+    else if (i == LEV) { sp = bp; bp = (int64 *)*sp++; pc = (int64 *)*sp++; } // leave subroutine
+    else if (i == LI)  a = *(int64 *)a;                                     // load int
     else if (i == LC)  a = *(char *)a;                                    // load char
-    else if (i == SI)  *(int *)*sp++ = a;                                 // store int
+    else if (i == SI)  *(int64 *)*sp++ = a;                                 // store int
     else if (i == SC)  a = *(char *)*sp++ = a;                            // store char
     else if (i == PSH) *--sp = a;                                         // push
 
@@ -518,11 +700,22 @@ int main(int argc, char **argv)
     else if (i == READ) a = read(sp[2], (char *)sp[1], *sp);
     else if (i == CLOS) a = close(*sp);
     else if (i == PRTF) { t = sp + pc[1]; a = printf((char *)t[-1], t[-2], t[-3], t[-4], t[-5], t[-6]); }
-    else if (i == MALC) a = (int)malloc(*sp);
+    else if (i == MALC) a = (int64)malloc(*sp);
     else if (i == FREE) free((void *)*sp);
-    else if (i == MSET) a = (int)memset((char *)sp[2], sp[1], *sp);
+    else if (i == MSET) a = (int64)memset((char *)sp[2], sp[1], *sp);
     else if (i == MCMP) a = memcmp((char *)sp[2], (char *)sp[1], *sp);
-    else if (i == EXIT) { printf("exit(%d) cycle = %d\n", *sp, cycle); return *sp; }
+    else if (i == EXIT) { 
+      //float timecost = (float)(clock() - begin_time) / CLOCKS_PER_SEC;    //最小精度到ms
+      //printf("exit(%d) cycle = %d|timecost=%f secd\n", *sp, cycle, timecost); 
+      return (int)(*sp);
+    }
+    else if (i == MA  ) { a = (int64)MAFun((int64 *)sp[1], (int)*sp); }
+    else if (i == GCLS) { a = (int64)getClose(); }
+    else if (i == SUBV) { a = (int64)SUBVFun((int64*)sp[1], (int64*)*sp); }
+    else if (i == MULV) { a = (int64)MULVFun((int64*)sp[1], (int)*sp); }
+    else if (i == EMA)  { a = (int64)EMAFun((int64 *)sp[1], (int)*sp); }
     else { printf("unknown instruction = %d! cycle = %d\n", i, cycle); return -1; }
   }
+
+  return 0;
 }
