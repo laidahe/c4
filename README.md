@@ -6,6 +6,7 @@ An exercise in minimalism.
 Try the following:
 
     gcc -o c4 c4.c
+    ./c4 macd.c
     ./c4 hello.c
     ./c4 -s hello.c
     
